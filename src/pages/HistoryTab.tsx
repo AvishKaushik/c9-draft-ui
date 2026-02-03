@@ -112,20 +112,57 @@ export default function HistoryTab() {
                 {expandedDraft === i && (
                   <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
                     <div className="grid grid-cols-2 gap-4">
+                      {/* Our Team */}
                       <div>
-                        <p className="text-xs text-slate-500 mb-2">Picks</p>
-                        <div className="flex flex-wrap gap-1">
-                          {draft.picks?.map((p: string, j: number) => (
-                            <span key={j} className="badge badge-blue">{p}</span>
-                          ))}
+                        <p className="text-xs font-semibold text-c9-blue mb-2">Our Team</p>
+
+                        <div className="mb-2">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Picks</p>
+                          <div className="flex flex-wrap gap-1">
+                            {draft.our_picks?.map((p: string, j: number) => (
+                              <span key={j} className="badge badge-blue">{p}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Bans</p>
+                          <div className="flex flex-wrap gap-1">
+                            {draft.our_bans?.length ? (
+                              draft.our_bans.map((b: string, j: number) => (
+                                <span key={j} className="badge badge-red">{b}</span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">None recorded</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Enemy Team */}
                       <div>
-                        <p className="text-xs text-slate-500 mb-2">Bans</p>
-                        <div className="flex flex-wrap gap-1">
-                          {draft.bans?.map((b: string, j: number) => (
-                            <span key={j} className="badge badge-red">{b}</span>
-                          ))}
+                        <p className="text-xs font-semibold text-red-600 mb-2">Enemy Team</p>
+
+                        <div className="mb-2">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Picks</p>
+                          <div className="flex flex-wrap gap-1">
+                            {draft.enemy_picks?.map((p: string, j: number) => (
+                              <span key={j} className="badge badge-gray">{p}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Bans</p>
+                          <div className="flex flex-wrap gap-1">
+                            {draft.enemy_bans?.length ? (
+                              draft.enemy_bans.map((b: string, j: number) => (
+                                <span key={j} className="badge badge-gray">{b}</span>
+                              ))
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">None recorded</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

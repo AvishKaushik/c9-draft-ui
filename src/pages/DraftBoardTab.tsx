@@ -15,25 +15,17 @@ export default function DraftBoardTab() {
 
   // Champion Search State
   const [championSearchQuery, setChampionSearchQuery] = useState('')
-  const debouncedChampionSearch = useDebounce(championSearchQuery, 300)
+  // debouncedChampionSearch removed
   const [showChampResults, setShowChampResults] = useState(false)
 
   // Prefetch meta champions for recommendations (used by recommendation engine)
-  useQuery({
+  const { data: metaChampions } = useQuery({
     queryKey: ['metaChampions'],
     queryFn: () => draftApi.getMetaChampions(),
     enabled: !!draftState,
   })
 
-  const searchChampionsMutation = useMutation({
-    mutationFn: (initialQuery: string) => draftApi.searchChampions(initialQuery, draftState?.session_id),
-  })
 
-  useEffect(() => {
-    if (debouncedChampionSearch.trim()) {
-      searchChampionsMutation.mutate(debouncedChampionSearch)
-    }
-  }, [debouncedChampionSearch])
 
   const searchMutation = useMutation({
     mutationFn: (initialQuery: string) => draftApi.searchTeams(initialQuery, 10),
@@ -220,8 +212,27 @@ export default function DraftBoardTab() {
     const champion = input?.champion || input
 
     const champName = typeof champion === 'string' ? champion : champion?.name
+    // DataDragon Image ID Exceptions
+    const getImageId = (name: string) => {
+      const exceptions: Record<string, string> = {
+        "Wukong": "MonkeyKing",
+        "Renata Glasc": "Renata",
+        "Nunu & Willump": "Nunu",
+        "Kai'Sa": "Kaisa",
+        "Kog'Maw": "KogMaw",
+        "Rek'Sai": "RekSai",
+        "Vel'Koz": "VelKoz",
+        "Cho'Gath": "ChoGath",
+        "Kha'Zix": "KhaZix",
+        "LeBlanc": "Leblanc",
+        "Bel'Veth": "Belveth"
+      }
+      if (exceptions[name]) return exceptions[name]
+      return name.replace(/[' .]/g, "")
+    }
+
     const imageUrl = champion?.loading_image_url || ((typeof champion === 'string')
-      ? `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${champion.replace(" ", "").replace("'", "").replace(".", "")}_0.jpg`
+      ? `https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${getImageId(champion)}_0.jpg`
       : null)
 
     return (
@@ -368,18 +379,41 @@ export default function DraftBoardTab() {
                     onBlur={() => setTimeout(() => setShowChampResults(false), 200)}
                   />
 
-                  {/* Results Dropdown */}
-                  {showChampResults && searchChampionsMutation.data?.results && (
+                  {/* Results Dropdown - Client Side Filtered */}
+                  {showChampResults && (
                     <div className="absolute top-12 left-0 right-0 bg-white rounded-lg shadow-xl border border-slate-200 max-h-60 overflow-y-auto z-50">
-                      {searchChampionsMutation.data.results.map((runner: any) => (
-                        <button
-                          key={runner.id}
-                          onClick={() => handleManualSelect(runner)}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm font-medium flex items-center justify-between text-slate-800"
-                        >
-                          <span>{runner.name}</span>
-                        </button>
-                      ))}
+                      {(() => {
+                        // Compute unavailable champions
+                        const picks = [...(draftState.state?.blue_picks || []), ...(draftState.state?.red_picks || [])]
+                        const bans = [...(draftState.state?.blue_bans || []), ...(draftState.state?.red_bans || [])]
+                        const unavailable = new Set([...picks, ...bans].map((x: any) => x.champion?.name || x.champion))
+
+                        // Filter meta champions
+                        const filtered = metaChampions?.champions?.filter((c: any) => {
+                          if (unavailable.has(c.name)) return false
+                          if (!championSearchQuery) return true
+
+                          const normalize = (s: string) => s.toLowerCase().replace(/['\s.]/g, '')
+                          return normalize(c.name).includes(normalize(championSearchQuery))
+                        }) || []
+
+                        return filtered.length > 0 ? (
+                          filtered.map((runner: any) => (
+                            <button
+                              key={runner.id}
+                              onClick={() => handleManualSelect(runner)}
+                              className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm font-medium flex items-center justify-between text-slate-800"
+                            >
+                              <div className="flex items-center gap-2">
+                                {runner.image_url && <img src={runner.image_url} className="w-6 h-6 rounded-full" />}
+                                <span>{runner.name}</span>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-3 text-sm text-slate-500 text-center">No champions found</div>
+                        )
+                      })()}
                     </div>
                   )}
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -448,7 +482,7 @@ export default function DraftBoardTab() {
             AI Recommendations
           </h3>
           <div className="space-y-3">
-            {draftState.recommendations?.slice(0, 4).map((rec: any, i: number) => (
+            {!draftState.state?.is_complete && currentTeam === draftState.our_side && draftState.recommendations?.slice(0, 4).map((rec: any, i: number) => (
               <div key={i} className="group flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:border-c9-blue/30 hover:bg-slate-50 transition-all cursor-pointer">
                 {rec.champion.image_url && (
                   <img src={rec.champion.image_url} alt={rec.champion.name} className="w-12 h-12 rounded-full border-2 border-white shadow-sm" />

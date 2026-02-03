@@ -20,6 +20,8 @@ export default function SimulateTab() {
   }
 
   const simulation = simulateMutation.data
+  const finalState = simulation?.final_state
+  const winProb = simulation?.win_probability
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -36,21 +38,19 @@ export default function SimulateTab() {
           <div className="flex gap-3">
             <button
               onClick={() => setOurSide('blue')}
-              className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                ourSide === 'blue'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
+              className={`px-4 py-2 rounded-lg border-2 transition-all ${ourSide === 'blue'
+                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                : 'border-slate-200 hover:border-slate-300'
+                }`}
             >
               Blue Side
             </button>
             <button
               onClick={() => setOurSide('red')}
-              className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                ourSide === 'red'
-                  ? 'border-red-500 bg-red-50 text-red-700'
-                  : 'border-slate-200 hover:border-slate-300'
-              }`}
+              className={`px-4 py-2 rounded-lg border-2 transition-all ${ourSide === 'red'
+                ? 'border-red-500 bg-red-50 text-red-700'
+                : 'border-slate-200 hover:border-slate-300'
+                }`}
             >
               Red Side
             </button>
@@ -88,7 +88,7 @@ export default function SimulateTab() {
       {simulateMutation.isPending && <Loading message="Simulating draft..." />}
 
       {/* Simulation Results */}
-      {simulation && (
+      {finalState && (
         <div className="space-y-6 animate-fade-in">
           {/* Teams */}
           <div className="grid md:grid-cols-2 gap-4">
@@ -98,16 +98,16 @@ export default function SimulateTab() {
               <div className="mb-3">
                 <p className="text-xs text-slate-500 mb-1">Bans</p>
                 <div className="flex flex-wrap gap-1">
-                  {(ourSide === 'blue' ? simulation.our_bans : simulation.their_bans)?.map((b: string, i: number) => (
-                    <span key={i} className="badge badge-red">{b}</span>
+                  {finalState.blue_bans?.map((b: any, i: number) => (
+                    <span key={i} className="badge badge-red">{b.champion?.name || b.champion || '?'}</span>
                   ))}
                 </div>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Picks</p>
                 <div className="flex flex-wrap gap-1">
-                  {(ourSide === 'blue' ? simulation.our_picks : simulation.their_picks)?.map((p: string, i: number) => (
-                    <span key={i} className="badge badge-blue">{p}</span>
+                  {finalState.blue_picks?.map((p: any, i: number) => (
+                    <span key={i} className="badge badge-blue">{p.champion?.name || p.champion || '?'}</span>
                   ))}
                 </div>
               </div>
@@ -119,16 +119,16 @@ export default function SimulateTab() {
               <div className="mb-3">
                 <p className="text-xs text-slate-500 mb-1">Bans</p>
                 <div className="flex flex-wrap gap-1">
-                  {(ourSide === 'red' ? simulation.our_bans : simulation.their_bans)?.map((b: string, i: number) => (
-                    <span key={i} className="badge badge-red">{b}</span>
+                  {finalState.red_bans?.map((b: any, i: number) => (
+                    <span key={i} className="badge badge-red">{b.champion?.name || b.champion || '?'}</span>
                   ))}
                 </div>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Picks</p>
                 <div className="flex flex-wrap gap-1">
-                  {(ourSide === 'red' ? simulation.our_picks : simulation.their_picks)?.map((p: string, i: number) => (
-                    <span key={i} className="badge badge-blue">{p}</span>
+                  {finalState.red_picks?.map((p: any, i: number) => (
+                    <span key={i} className="badge badge-blue">{p.champion?.name || p.champion || '?'}</span>
                   ))}
                 </div>
               </div>
@@ -136,32 +136,37 @@ export default function SimulateTab() {
           </div>
 
           {/* Win Probability */}
-          {simulation.win_probability !== undefined && (
+          {winProb !== undefined && (
             <div className="card">
               <h3 className="font-semibold text-slate-800 mb-2">Predicted Win Probability</h3>
               <div className="flex items-center gap-3">
                 <div className="flex-1 bg-slate-200 rounded-full h-4">
                   <div
-                    className={`rounded-full h-4 transition-all ${
-                      simulation.win_probability >= 0.5 ? 'bg-c9-blue' : 'bg-red-500'
-                    }`}
-                    style={{ width: `${simulation.win_probability * 100}%` }}
+                    className={`rounded-full h-4 transition-all ${winProb.probability >= 0.5 ? 'bg-c9-blue' : 'bg-red-500'
+                      }`}
+                    style={{ width: `${winProb.probability * 100}%` }}
                   />
                 </div>
-                <span className={`font-bold text-lg ${
-                  simulation.win_probability >= 0.5 ? 'text-c9-blue' : 'text-red-500'
-                }`}>
-                  {(simulation.win_probability * 100).toFixed(0)}%
+                <span className={`font-bold text-lg ${winProb.probability >= 0.5 ? 'text-c9-blue' : 'text-red-500'
+                  }`}>
+                  {(winProb.probability * 100).toFixed(0)}%
                 </span>
               </div>
             </div>
           )}
 
           {/* Analysis */}
-          {simulation.analysis && (
+          {(simulation?.win_condition || simulation?.warnings?.length > 0) && (
             <div className="card">
               <h3 className="font-semibold text-slate-800 mb-3">Analysis</h3>
-              <p className="text-slate-600 leading-relaxed">{simulation.analysis}</p>
+              <p className="text-slate-600 leading-relaxed mb-2">
+                <span className="font-semibold">Win Condition:</span> {simulation?.win_condition}
+              </p>
+              {simulation?.warnings?.map((w: string, i: number) => (
+                <p key={i} className="text-amber-600 text-sm flex items-center gap-2">
+                  <span>⚠️</span> {w}
+                </p>
+              ))}
             </div>
           )}
         </div>
